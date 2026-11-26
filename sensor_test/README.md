@@ -9,6 +9,7 @@
 | `hr_test/` | `hr_test_top` | 심박 펄스 검출, BPM 계산 |
 | `motor_test/` | `motor_test_top` | 진동모터 구동 |
 | `log_test/` | `log_test_top` | 뇌파+심박 데이터를 노트북에 CSV로 기록 |
+| `tgam_bluetooth/` | (FPGA 없음) | TGAM 키트 블루투스 모듈로 노트북에서 직접 뇌파 확인 |
 
 ---
 
@@ -96,6 +97,11 @@ SW_B를 누르는 동안 진동모터와 LED1이 켜집니다.
 최종 설계의 판정 기준값(`TH_BPM`, `TH_MED`)을 정할 수 있습니다.
 
 **노트북 쪽 사용법**
+
+보드의 USB-Serial 칩은 **CP2102**입니다. 처음 한 번 Silicon Labs의 *CP210x Universal Windows Driver*를 설치해야
+COM 포트가 생깁니다 (장치 관리자 → 포트(COM & LPT)에서 번호 확인). COM 포트는 한 프로그램만 열 수 있으니,
+로거를 다시 실행할 때는 이전 로거를 Ctrl+C로 끄고 실행하세요.
+FPGA 송신 핀은 **U4**입니다 (2026-11-26 보드에서 확인. 장치 자료의 `USB_TXD = U3`은 USB 칩 기준 이름이라 U3은 FPGA 입력).
 ```
 pip install pyserial
 python eeg_logger.py --list            # 연결된 COM 포트 확인
@@ -123,3 +129,24 @@ M,<ms>,<flag>          마커 버튼을 누른 순간
 ```
 
 **모듈**: tgam_test·hr_test의 모듈 + `uart_tx`(8N1 송신), `log_formatter`(이벤트를 텍스트 줄로 만들어 전송)
+
+---
+
+## tgam_bluetooth: FPGA 없이 뇌파 확인
+
+TGAM 키트의 블루투스 모듈로 노트북이 ThinkGear 패킷을 직접 받아, 1초마다 Poor Signal·Attention·Meditation을 보여주고 CSV로 저장합니다.
+블루투스로는 값이 오는데 FPGA(tgam_test, log_test)로는 안 오면 TGAM은 정상이고 FPGA 쪽 배선 문제입니다. 최종 설계에서는 블루투스를 쓰지 않습니다.
+
+1. 블루투스 모듈을 TGAM에 연결하고 TGAM 전원을 켭니다.
+2. Windows 설정 → Bluetooth → 장치 추가에서 모듈과 페어링합니다 (PIN을 물으면 `1234` 또는 `0000`).
+3. 장치 관리자에 블루투스 COM 포트가 2개 생깁니다. "기타 Bluetooth 설정 → COM 포트" 탭에서 **보내는 쪽(Outgoing)** 번호를 씁니다.
+4. 실행합니다.
+```
+python tgam_bluetooth.py --list        # COM 포트 확인
+python tgam_bluetooth.py COM7          # 수신 시작, Ctrl+C로 종료
+python tgam_bluetooth.py COM7 --raw    # Raw 뇌파(약 512Hz)도 raw.csv로 저장
+python tgam_bluetooth.py --test        # 파서 자체 점검
+```
+- 화면 열: `poor att med raw/s chk_err`. 정상이면 raw/s가 약 512이고, 전극을 착용하면 poor가 200 → 0으로 내려간 뒤 몇 초 후 att·med가 나옵니다.
+- 바이트가 아예 안 오면 포트(Outgoing인지)·전원·페어링을, chk_err만 늘면 모듈의 내부 baud가 57600인지 확인합니다.
+- 저장: `tgam_bluetooth/logs/<날짜_시각>/eeg.csv` (pc_time, poor, att, med, 8개 대역), `--raw`면 `raw.csv`

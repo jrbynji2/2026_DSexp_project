@@ -9,8 +9,8 @@ set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS33} [get_ports hr_sig]
 ## 3.3V 배선일 때 심박센서 VCC -> J6 7번 (EXT4)
 set_property -dict {PACKAGE_PIN AA20 IOSTANDARD LVCMOS33 DRIVE 16} [get_ports hr_vcc]
 
-## USB-Serial: USB_TXD(U3) = FPGA 출력 -> FT232RL RXD (장비 매뉴얼 USB 회로도 기준)
-set_property -dict {PACKAGE_PIN U3   IOSTANDARD LVCMOS33} [get_ports usb_tx]
+## USB-Serial: FPGA 출력 = U4 (보드 USB 칩 CP2102의 RXD). U3은 칩의 TXD라 FPGA 입력 (2026-11-26 usb_probe로 보드 확인)
+set_property -dict {PACKAGE_PIN U4   IOSTANDARD LVCMOS33} [get_ports usb_tx]
 
 ## DIP 스위치 (올리면 1)
 set_property -dict {PACKAGE_PIN AB3  IOSTANDARD LVCMOS33} [get_ports {dip[0]}]
