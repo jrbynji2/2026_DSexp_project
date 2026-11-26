@@ -33,10 +33,10 @@
 
 | y 범위 | 내용 |
 |---|---|
-| 0~29 | 단계 색 막대 (Full Color LED와 같은 색) |
-| 40~239 | Raw 뇌파 파형 (최근 약 3초) |
-| 270~379 | 최근 100초 Attention(하늘색) / Meditation(초록) 막대 |
-| 400~469 | 숫자: BPM(빨강) · Attention(하늘색) · Meditation(초록), 오른쪽 끝에 박동 표시 |
+| 0\~29 | 단계 색 막대 (Full Color LED와 같은 색) |
+| 40\~239 | Raw 뇌파 파형 (최근 약 3초) |
+| 270\~379 | 최근 100초 Attention(하늘색) / Meditation(초록) 막대 |
+| 400\~469 | 숫자: BPM(빨강) · Attention(하늘색) · Meditation(초록), 오른쪽 끝에 박동 표시 |
 
 ## 판정 방법
 
@@ -63,14 +63,21 @@
 ## 모듈 구성
 
 ```
-                 ┌ uart_rx → tgam_parser ─┬─────────────────────────────┐
- TGAM ───────────┘                        │ Attention/Meditation/Raw    │
-                                          ▼                             ▼
- 심박 ── pulse_in → bpm_calc ──→ feature_accum ×2 → decision ──┬→ rgb_led ──→ Full Color LED
-                                   ▲ (기준/판별)                ├→ alert ────→ 피에조, 진동모터
- 버튼 ── btn_pulse → main_fsm ─────┘                            ├→ lcd_msg → text_lcd_ctrl → Text LCD
-                         └ 단계, 남은 초 ───────────────────────┴→ tft_display ──→ TFT LCD
+[input]                             [judge]                          [output]
+
+TGAM -> uart_rx -> tgam_parser --+
+                                 +--> feature_accum x2 --> decision --+--> rgb_led ------> Full Color LED
+HR   -> pulse_in -> bpm_calc ----+     (base / test)                  |       |
+                                          ^                           |       v
+BTN  -> btn_pulse -> main_fsm ------------+ clear, en                 |    tft_display --> TFT LCD
+                        |                                             |
+                        +-- state, sec_left --------------------------+--> alert --------> piezo, motor
+                                                                      |
+                                                                      +--> lcd_msg -> text_lcd_ctrl -> Text LCD
 ```
+
+- `tft_display`는 단계 색(`rgb_led` 출력) 외에 Raw·Attention·Meditation·BPM을 센서 쪽에서 직접 받습니다.
+- LED·7-Segment는 `main_top`에서 센서 값과 단계로 바로 표시합니다.
 
 | 모듈 | 역할 |
 |---|---|
